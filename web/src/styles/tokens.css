@@ -1,0 +1,51 @@
+/* Design tokens (spec §7.5). Components use these variables only — no raw colors. */
+:root {
+  --color-primary: #2563EB;
+  --color-primary-soft: rgba(37, 99, 235, 0.1);
+  --color-navy: #0F172A;
+  --color-teal: #0F766E;
+  --color-teal-soft: rgba(15, 118, 110, 0.1);
+  --color-bg: #F8FAFC;
+  --color-surface: #FFFFFF;
+  --color-text: #0F172A;
+  --color-text-muted: #64748B;
+  --color-border: #E2E8F0;
+  --color-success: #16A34A;
+  --color-success-soft: rgba(22, 163, 74, 0.12);
+  --color-warning: #D97706;
+  --color-warning-soft: rgba(217, 119, 6, 0.12);
+  --color-danger: #DC2626;
+  --color-danger-soft: rgba(220, 38, 38, 0.1);
+  --color-on-dark: #E2E8F0;
+  --color-on-dark-muted: #94A3B8;
+  --color-on-dark-hover: rgba(255, 255, 255, 0.08);
+  --color-backdrop: rgba(15, 23, 42, 0.5);
+
+  --font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-base: 14px;
+  --text-md: 16px;
+  --text-lg: 18px;
+  --text-xl: 20px;
+  --text-2xl: 26px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 16px 40px rgba(15, 23, 42, 0.18);
+
+  --sidebar-width: 232px;
+  --sidebar-collapsed: 72px;
+  --navbar-height: 60px;
+}

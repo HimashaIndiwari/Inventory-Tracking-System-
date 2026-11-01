@@ -1,0 +1,4 @@
+# Profile for the backend instance used by Playwright E2E tests.
+# DB_URL must point at inventory_test; TestDatabaseGuard refuses to start
+# against any database whose name does not end with _test.
+# Use a dedicated non-production Firebase project only.

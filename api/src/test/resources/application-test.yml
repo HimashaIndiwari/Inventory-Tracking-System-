@@ -1,0 +1,12 @@
+spring:
+  config:
+    # Credentials file is never committed (.gitignore); found from api/ or from the repository root.
+    import: "optional:file:./test-db.properties,optional:file:./api/test-db.properties"
+  datasource:
+    url: ${TEST_DB_URL}
+    username: ${TEST_DB_USERNAME}
+    password: ${TEST_DB_PASSWORD}
+
+app:
+  firebase:
+    enabled: false

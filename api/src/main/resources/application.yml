@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: inventory-api
+  datasource:
+    # inventory_db for local development; include connectionTimeZone=UTC in the URL
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  sql:
+    init:
+      # Never run SQL scripts automatically; schema.sql is applied manually (database/README.md)
+      mode: never
+  jpa:
+    open-in-view: false
+    hibernate:
+      # database/schema.sql is the source of truth; Hibernate only checks it
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+
+app:
+  security:
+    admin-emails: ${APP_SECURITY_ADMIN_EMAILS:}
+  cors:
+    allowed-origin: ${APP_CORS_ALLOWED_ORIGIN:http://localhost:5173}
+  firebase:
+    enabled: true
