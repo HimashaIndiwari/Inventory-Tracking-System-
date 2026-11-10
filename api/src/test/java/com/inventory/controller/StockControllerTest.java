@@ -17,6 +17,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.ResultActions;
 
+import com.inventory.dto.StockAdjustmentRequest;
 import com.inventory.dto.StockMovementRequest;
 import com.inventory.dto.StockTransactionResponse;
 import com.inventory.dto.StockTransactionResponse.ProductRef;
@@ -113,5 +114,59 @@ class StockControllerTest extends WebSliceSupport {
         mvc.perform(get("/api/stock/history").param("type", "SIDEWAYS").header(HttpHeaders.AUTHORIZATION, USER))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("MALFORMED_REQUEST"));
+    }
+
+    private static final StockTransactionResponse ADJUSTMENT = new StockTransactionResponse(5L,
+            TransactionType.ADJUST, -3, 5, "Damaged", new ProductRef(9L, "ELEC-001", "Mouse"),
+            new UserRef(2L, null, "admin@example.com"), Instant.parse("2026-11-01T10:00:00Z"));
+
+    private ResultActions adjust(String json, String auth) throws Exception {
+        when(service.adjust(any(StockAdjustmentRequest.class), any(AuthenticatedUser.class))).thenReturn(ADJUSTMENT);
+        return mvc.perform(post("/api/stock/adjust").header(HttpHeaders.AUTHORIZATION, auth)
+                .contentType(MediaType.APPLICATION_JSON).content(json));
+    }
+
+    @Test
+    void adminAdjustReturns201WithSignedQuantity() throws Exception {
+        adjust("{\"productId\":9,\"delta\":-3,\"note\":\"Damaged\"}", ADMIN)
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.type").value("ADJUST"))
+                .andExpect(jsonPath("$.quantity").value(-3))
+                .andExpect(jsonPath("$.quantityAfter").value("5"));
+    }
+
+    @Test
+    void userAdjustIs403() throws Exception {
+        adjust("{\"productId\":9,\"delta\":1,\"note\":\"Found\"}", USER)
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"));
+    }
+
+    @Test
+    void adjustRequiresNonBlankNote() throws Exception {
+        for (String body : new String[] {
+                "{\"productId\":9,\"delta\":1,\"note\":\"\"}",
+                "{\"productId\":9,\"delta\":1,\"note\":\"   \"}",
+                "{\"productId\":9,\"delta\":1}"}) {
+            adjust(body, ADMIN)
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+                    .andExpect(jsonPath("$.fieldErrors[0].field").value("note"));
+        }
+    }
+
+    @Test
+    void adjustRejectsMissingOrOutOfRangeDelta() throws Exception {
+        for (String delta : new String[] {"null", "1000001", "-1000001"}) {
+            adjust("{\"productId\":9,\"delta\":" + delta + ",\"note\":\"Count\"}", ADMIN)
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.fieldErrors[0].field").value("delta"));
+        }
+    }
+
+    @Test
+    void adjustDeltaOfPlusOrMinusMillionIsAccepted() throws Exception {
+        adjust("{\"productId\":9,\"delta\":1000000,\"note\":\"Count\"}", ADMIN).andExpect(status().isCreated());
+        adjust("{\"productId\":9,\"delta\":-1000000,\"note\":\"Count\"}", ADMIN).andExpect(status().isCreated());
     }
 }

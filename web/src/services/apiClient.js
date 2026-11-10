@@ -31,14 +31,17 @@ const FALLBACK_MESSAGES = {
   503: 'The authentication service is temporarily unavailable. Please try again.',
 };
 
+// Empty in development (the Vite proxy forwards /api). Set VITE_API_BASE_URL at build time for a deployed API.
+const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/+$/, '');
+
 function buildUrl(path, params) {
-  if (!params) return path;
+  if (!params) return API_BASE + path;
   const query = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
     if (value !== undefined && value !== null && value !== '') query.append(key, String(value));
   });
   const qs = query.toString();
-  return qs ? `${path}?${qs}` : path;
+  return qs ? `${API_BASE}${path}?${qs}` : API_BASE + path;
 }
 
 function toApiError(status, body) {

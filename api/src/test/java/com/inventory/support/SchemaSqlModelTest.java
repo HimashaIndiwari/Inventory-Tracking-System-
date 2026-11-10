@@ -44,7 +44,10 @@ class SchemaSqlModelTest {
     @Test
     void parsesCheckExpressions() {
         assertThat(model.checks("stock_transactions").get("chk_stock_transactions_quantity_range"))
-                .isEqualTo("quantity BETWEEN 1 AND 1000000");
+                .isEqualTo("quantity <> 0 AND quantity BETWEEN -1000000 AND 1000000");
+        assertThat(model.checks("stock_transactions").get("chk_stock_transactions_sign_by_type"))
+                .isEqualTo("(type COLLATE utf8mb4_bin = 'ADJUST' AND quantity <> 0)"
+                        + " OR (type COLLATE utf8mb4_bin IN ('IN', 'OUT') AND quantity > 0)");
     }
 
     @Test

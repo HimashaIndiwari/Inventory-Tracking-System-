@@ -33,5 +33,6 @@ export const supplierService = crud('/api/suppliers');
 export const stockService = {
   stockIn: (body) => apiRequest('/api/stock/in', { method: 'POST', body }),
   stockOut: (body) => apiRequest('/api/stock/out', { method: 'POST', body }),
+  adjust: (body) => apiRequest('/api/stock/adjust', { method: 'POST', body }),
   history: (params) => apiRequest('/api/stock/history', { params }),
 };

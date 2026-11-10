@@ -54,4 +54,32 @@ describe('Dashboard', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
     expect(await screen.findByText('9,007,199,254,740,993')).toBeInTheDocument();
   });
+
+  it('shows recent ADJUST movements with a neutral badge', async () => {
+    vi.mocked(dashboardService.get).mockResolvedValue({
+      ...EMPTY,
+      recentTransactions: [{
+        id: 7, type: 'ADJUST', quantity: -2, quantityAfter: '3', createdAt: '2026-11-01T09:30:00Z',
+        product: { id: 9, sku: 'ELEC-001', name: 'Mouse' },
+        user: { id: 1, displayName: 'Ann', email: 'ann@example.com' },
+      }],
+    });
+    renderDashboard();
+
+    expect(await screen.findByText('ADJUST')).toHaveClass('badge-neutral');
+  });
+
+  it('shows a positive ADJUST with a plus sign, as on the history pages', async () => {
+    vi.mocked(dashboardService.get).mockResolvedValue({
+      ...EMPTY,
+      recentTransactions: [{
+        id: 8, type: 'ADJUST', quantity: 4, quantityAfter: '9', createdAt: '2026-11-01T09:30:00Z',
+        product: { id: 9, sku: 'ELEC-001', name: 'Mouse' },
+        user: { id: 1, displayName: 'Ann', email: 'ann@example.com' },
+      }],
+    });
+    renderDashboard();
+
+    expect(await screen.findByText('+4')).toBeInTheDocument();
+  });
 });

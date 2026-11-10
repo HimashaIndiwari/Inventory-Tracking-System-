@@ -6,6 +6,7 @@ import static org.mockito.Mockito.when;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -17,10 +18,13 @@ import com.inventory.security.VerifiedToken;
 import com.inventory.service.UserProvisioningService;
 
 /**
- * Base for @WebMvcTest slice tests: real SecurityConfig + fake token verifier, provisioning mocked so that
- * "user-token" resolves to USER and "admin-token" to ADMIN. Subclasses declare @WebMvcTest(controllers = ...).
+ * Base for @WebMvcTest slice tests. Uses the real SecurityConfig and the fake token verifier. Provisioning is
+ * mocked so that "user-token" resolves to USER and "admin-token" to ADMIN. Firebase initialisation is disabled
+ * (app.firebase.enabled=false), so no Firebase connection is made. The slices do not include JPA or DataSource
+ * auto-configuration. Subclasses declare @WebMvcTest(controllers = ...) and mock the services their controllers need.
  */
 @Import({SecurityConfig.class, FakeFirebaseTokenVerifier.class, ProblemDetailWriter.class})
+@TestPropertySource(properties = "app.firebase.enabled=false")
 public abstract class WebSliceSupport {
 
     protected static final String USER = "Bearer user-token";

@@ -1,36 +1,69 @@
 package com.inventory.security;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.util.List;
+
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MvcResult;
-import org.springframework.test.web.servlet.RequestBuilder;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import com.inventory.controller.AuthController;
 import com.inventory.support.WebSliceSupport;
 
 /**
- * Security rules at Task 6 time: catalog and stock controllers do not exist yet, so a request that passes
- * security ends in 404 (no handler). The assertion is "neither 401 nor 403".
+ * Security rules only: authentication (401), role-based denial (403), the security filter's error responses
+ * (503, 500) and CORS. Only AuthController is loaded here. Security decides before dispatch, so denials for the
+ * catalog and stock endpoints are checked without loading their controllers. Success and validation statuses are
+ * tested in the controller test classes.
  */
 @WebMvcTest(controllers = AuthController.class)
 class SecurityRulesTest extends WebSliceSupport {
 
-    private static final String[] CATALOG = {"/api/products", "/api/categories/1", "/api/suppliers/1"};
+    /** An endpoint that writes data, with the exact method and path that the controllers map. */
+    private record Call(HttpMethod method, String path) {
+    }
+
+    /** Catalog writes, as mapped by ProductController, CategoryController and SupplierController. */
+    static List<Call> catalogWrites() {
+        return List.of(
+                new Call(HttpMethod.POST, "/api/products"),
+                new Call(HttpMethod.PUT, "/api/products/1"),
+                new Call(HttpMethod.DELETE, "/api/products/1"),
+                new Call(HttpMethod.POST, "/api/categories"),
+                new Call(HttpMethod.PUT, "/api/categories/1"),
+                new Call(HttpMethod.DELETE, "/api/categories/1"),
+                new Call(HttpMethod.POST, "/api/suppliers"),
+                new Call(HttpMethod.PUT, "/api/suppliers/1"),
+                new Call(HttpMethod.DELETE, "/api/suppliers/1"));
+    }
+
+    /** Stock writes, as mapped by StockController. */
+    static List<Call> stockWrites() {
+        return List.of(
+                new Call(HttpMethod.POST, "/api/stock/in"),
+                new Call(HttpMethod.POST, "/api/stock/out"),
+                new Call(HttpMethod.POST, "/api/stock/adjust"));
+    }
+
+    private static MockHttpServletRequestBuilder build(Call call, String authorization) {
+        MockHttpServletRequestBuilder builder = request(call.method(), call.path())
+                .contentType(MediaType.APPLICATION_JSON).content("{}");
+        return authorization == null ? builder : builder.header(HttpHeaders.AUTHORIZATION, authorization);
+    }
 
     @Test
     void noTokenIs401() throws Exception {
@@ -39,6 +72,8 @@ class SecurityRulesTest extends WebSliceSupport {
                 .andExpect(jsonPath("$.code").value("UNAUTHENTICATED"));
     }
 
+    // The fake verifier maps revoked, disabled and expired tokens to the same outcome (its default branch).
+    // The real mapping to InvalidTokenException is tested in FirebaseAdminTokenVerifierTest.
     @Test
     void revokedTokenIs401() throws Exception {
         mvc.perform(get("/api/auth/me").header(HttpHeaders.AUTHORIZATION, "Bearer revoked-token"))
@@ -73,32 +108,35 @@ class SecurityRulesTest extends WebSliceSupport {
                 .andExpect(content().string(not(containsString("Exception"))));
     }
 
-    @Test
-    void userCannotWriteCatalog() throws Exception {
-        for (String path : CATALOG) {
-            for (RequestBuilder request : writes(path, USER)) {
-                mvc.perform(request)
-                        .andExpect(status().isForbidden())
-                        .andExpect(jsonPath("$.code").value("FORBIDDEN"));
-            }
-        }
+    @ParameterizedTest(name = "no token: {0}")
+    @MethodSource("catalogWrites")
+    void catalogWriteWithoutTokenIs401(Call call) throws Exception {
+        mvc.perform(build(call, null))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHENTICATED"));
+    }
+
+    @ParameterizedTest(name = "USER denied: {0}")
+    @MethodSource("catalogWrites")
+    void userCannotWriteCatalog(Call call) throws Exception {
+        mvc.perform(build(call, USER))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"));
+    }
+
+    @ParameterizedTest(name = "no token: {0}")
+    @MethodSource("stockWrites")
+    void stockWriteWithoutTokenIs401(Call call) throws Exception {
+        mvc.perform(build(call, null))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHENTICATED"));
     }
 
     @Test
-    void adminCanWriteCatalog() throws Exception {
-        for (String path : CATALOG) {
-            for (RequestBuilder request : writes(path, ADMIN)) {
-                MvcResult result = mvc.perform(request).andReturn();
-                assertThat(result.getResponse().getStatus()).as(path).isNotIn(401, 403);
-            }
-        }
-    }
-
-    @Test
-    void userCanPostStock() throws Exception {
-        MvcResult result = mvc.perform(post("/api/stock/in").header(HttpHeaders.AUTHORIZATION, USER)
-                .contentType(MediaType.APPLICATION_JSON).content("{}")).andReturn();
-        assertThat(result.getResponse().getStatus()).isNotIn(401, 403);
+    void userCannotAdjustStock() throws Exception {
+        mvc.perform(build(new Call(HttpMethod.POST, "/api/stock/adjust"), USER))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"));
     }
 
     @Test
@@ -116,12 +154,5 @@ class SecurityRulesTest extends WebSliceSupport {
         mvc.perform(options("/api/auth/me").header(HttpHeaders.ORIGIN, "http://evil.example")
                         .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "GET"))
                 .andExpect(status().isForbidden());
-    }
-
-    private static RequestBuilder[] writes(String path, String auth) {
-        return new RequestBuilder[] {
-                post(path).header(HttpHeaders.AUTHORIZATION, auth).contentType(MediaType.APPLICATION_JSON).content("{}"),
-                put(path).header(HttpHeaders.AUTHORIZATION, auth).contentType(MediaType.APPLICATION_JSON).content("{}"),
-                delete(path).header(HttpHeaders.AUTHORIZATION, auth)};
     }
 }

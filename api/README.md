@@ -65,6 +65,7 @@ All endpoints require `Authorization: Bearer <Firebase ID token>`. Errors use RF
 | GET | `/api/categories`, `/api/suppliers` | any |
 | POST / PUT / DELETE | `/api/categories[/{id}]`, `/api/suppliers[/{id}]` | ADMIN |
 | POST | `/api/stock/in`, `/api/stock/out` | any |
+| POST | `/api/stock/adjust` | ADMIN (body: `productId`, signed `delta`, required `note` as the reason) |
 | GET | `/api/stock/history?productId=&type=&search=&from=&to=&page=&size=` | any |
 
 `page` is zero-based, `size` is 1–100 (default 20). `from`/`to` are ISO-8601 instants; `from` is inclusive,

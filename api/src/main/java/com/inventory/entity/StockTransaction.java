@@ -37,7 +37,7 @@ public class StockTransaction {
 
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.VARCHAR)
-    @Column(nullable = false, length = 3, updatable = false)
+    @Column(nullable = false, length = 6, updatable = false)
     private TransactionType type;
 
     @Column(nullable = false, updatable = false)

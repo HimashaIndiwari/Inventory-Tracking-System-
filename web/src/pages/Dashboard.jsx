@@ -3,6 +3,7 @@ import { AlertTriangle, Boxes, Package } from 'lucide-react';
 import { useApi } from '../hooks/useApi';
 import { dashboardService } from '../services/services';
 import { EmptyState, ErrorMessage, LoadingState, StatusBadge } from '../components/ui';
+import { movementTone, signedQuantity } from '../components/TransactionTable';
 import { barWidthPercent, formatDateTime, formatQuantity, maxQuantity } from '../utils/format';
 
 function DashboardCard({ icon: Icon, label, value, tone }) {
@@ -95,8 +96,8 @@ export default function Dashboard() {
                     <tr key={t.id}>
                       <td data-label="Date">{formatDateTime(t.createdAt)}</td>
                       <td data-label="Product">{t.product.name}<div className="muted small">{t.product.sku}</div></td>
-                      <td data-label="Type"><StatusBadge tone={t.type === 'IN' ? 'success' : 'danger'}>{t.type}</StatusBadge></td>
-                      <td data-label="Quantity">{t.quantity.toLocaleString('en-US')}</td>
+                      <td data-label="Type"><StatusBadge tone={movementTone(t.type)}>{t.type}</StatusBadge></td>
+                      <td data-label="Quantity">{signedQuantity(t)}</td>
                       <td data-label="After">{formatQuantity(t.quantityAfter)}</td>
                       <td data-label="User">{t.user.displayName || t.user.email}</td>
                     </tr>

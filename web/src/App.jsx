@@ -9,6 +9,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Products from './pages/Products';
+import ProductHistory from './pages/ProductHistory';
 import ProductForm from './pages/ProductForm';
 import Categories from './pages/Categories';
 import Suppliers from './pages/Suppliers';
@@ -50,6 +51,7 @@ export default function App() {
               <Route path="products" element={<Products />} />
               <Route path="products/new" element={<ProtectedRoute adminOnly><ProductForm /></ProtectedRoute>} />
               <Route path="products/:id/edit" element={<ProtectedRoute adminOnly><ProductForm /></ProtectedRoute>} />
+              <Route path="products/:id/history" element={<ProductHistory />} />
               <Route path="categories" element={<Categories />} />
               <Route path="suppliers" element={<Suppliers />} />
               <Route path="stock" element={<StockManagement />} />

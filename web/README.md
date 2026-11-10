@@ -3,6 +3,10 @@
 React 19 + Vite frontend for the Inventory Tracking System. It signs users in with Firebase Authentication
 (Email/Password) and calls the Spring Boot API in `../api` with `Authorization: Bearer <Firebase ID token>`.
 
+## Prerequisites
+
+- **Node.js** `^20.19.0` or `>=22.12.0` (required by Vite 8). Check with `node --version`.
+
 ## Configuration
 
 1. In the Firebase console of the **non-production** project:
@@ -41,10 +45,17 @@ npm test           # Vitest + React Testing Library (Firebase and the API are mo
 npm run build      # writes web/dist
 ```
 
-`web/dist/` is not yet listed in the root `.gitignore`; do not commit it.
+`web/dist/` is git-ignored by the root `.gitignore` (`dist/`); do not force-add it.
 
 ## Notes
 
 - Stock quantities and totals arrive from the API as decimal strings and are formatted with `BigInt`
   (`src/utils/format.js`), so values above 2^53 are shown exactly.
 - Hiding admin buttons and routes is for usability only; the backend enforces every permission.
+
+## Troubleshooting
+
+- **"Firebase is not configured"**: `web/.env.local` is missing or a value is empty. Restart `npm run dev` after editing it.
+- **"Cannot reach the server"**: the backend is not running on port 8080.
+- **"Your session has expired"**: the Firebase session or token is no longer valid. Sign in again.
+- **"You do not have permission to do this."**: the API answered HTTP 403 without a problem-detail body, so the frontend showed its generic fallback (`src/services/apiClient.js`). A normal API 403 says "You do not have permission to perform this action." Check the request in the browser's Network tab and confirm which process answers on port 8080.

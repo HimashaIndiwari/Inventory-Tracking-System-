@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Archive, Pencil, Plus, Search } from 'lucide-react';
+import { Archive, History, Pencil, Plus, Search } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useApi } from '../hooks/useApi';
@@ -84,7 +84,7 @@ export default function Products() {
           <>
             <table className={`table ${products.loading ? 'is-refreshing' : ''}`}>
               <thead>
-                <tr><th>SKU</th><th>Name</th><th>Category</th><th>Supplier</th><th>Price</th><th>Quantity</th><th>Status</th>{isAdmin && <th><span className="sr-only">Actions</span></th>}</tr>
+                <tr><th>SKU</th><th>Name</th><th>Category</th><th>Supplier</th><th>Price</th><th>Quantity</th><th>Status</th><th><span className="sr-only">Actions</span></th></tr>
               </thead>
               <tbody>
                 {page.content.map((p) => (
@@ -98,14 +98,17 @@ export default function Products() {
                     <td data-label="Status">
                       {p.lowStock ? <StatusBadge tone="warning">Low stock</StatusBadge> : <StatusBadge tone="success">In stock</StatusBadge>}
                     </td>
-                    {isAdmin && (
-                      <td className="actions">
-                        <Link className="btn btn-ghost btn-icon" to={`/products/${p.id}/edit`} aria-label={`Edit ${p.name}`}><Pencil size={16} /></Link>
-                        <button type="button" className="btn btn-ghost btn-icon danger" aria-label={`Archive ${p.name}`} onClick={() => setArchiving(p)}>
-                          <Archive size={16} />
-                        </button>
-                      </td>
-                    )}
+                    <td className="actions">
+                      <Link className="btn btn-ghost btn-icon" to={`/products/${p.id}/history`} aria-label={`History for ${p.name}`}><History size={16} /></Link>
+                      {isAdmin && (
+                        <>
+                          <Link className="btn btn-ghost btn-icon" to={`/products/${p.id}/edit`} aria-label={`Edit ${p.name}`}><Pencil size={16} /></Link>
+                          <button type="button" className="btn btn-ghost btn-icon danger" aria-label={`Archive ${p.name}`} onClick={() => setArchiving(p)}>
+                            <Archive size={16} />
+                          </button>
+                        </>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>

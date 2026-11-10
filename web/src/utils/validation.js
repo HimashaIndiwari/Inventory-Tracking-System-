@@ -5,6 +5,7 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const SKU = /^\s*[A-Za-z0-9-]{3,50}\s*$/;
 const PRICE = /^\d{1,10}(\.\d{1,2})?$/;
 const WHOLE = /^\d+$/;
+const SIGNED_WHOLE = /^[+-]?\d+$/;
 
 function maxLength(errors, field, value, max, label) {
   if (value && value.length > max) errors[field] = `${label} must be at most ${max} characters.`;
@@ -67,6 +68,23 @@ export function validateStock({ productId, quantity, note }) {
   if (!WHOLE.test(q) || Number(q) < 1 || Number(q) > 1_000_000) {
     errors.quantity = 'Quantity must be a whole number from 1 to 1,000,000.';
   }
+  maxLength(errors, 'note', note, 255, 'Note');
+  return errors;
+}
+
+/** Signed change: positive adds stock, negative removes it. The reason is required (stored in the note field). */
+export function validateAdjustment({ productId, quantity, note }) {
+  const errors = {};
+  if (!productId) errors.productId = 'Select a product.';
+  const q = String(quantity).trim();
+  if (!SIGNED_WHOLE.test(q)) {
+    errors.quantity = 'Enter a whole number: positive to add stock, negative to remove it.';
+  } else if (Number(q) === 0) {
+    errors.quantity = 'Change cannot be zero.';
+  } else if (Math.abs(Number(q)) > 1_000_000) {
+    errors.quantity = 'Change must be between -1,000,000 and 1,000,000.';
+  }
+  if (!String(note ?? '').trim()) errors.note = 'A reason is required.';
   maxLength(errors, 'note', note, 255, 'Note');
   return errors;
 }

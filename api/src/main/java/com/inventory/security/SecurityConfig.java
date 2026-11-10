@@ -39,6 +39,7 @@ public class SecurityConfig {
                         .authenticationEntryPoint(new JsonAuthenticationEntryPoint(writer))
                         .accessDeniedHandler(new JsonAccessDeniedHandler(writer)))
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.POST, "/api/stock/adjust").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/stock/in", "/api/stock/out").authenticated()
                         .requestMatchers(HttpMethod.POST, CATALOG).hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, CATALOG).hasRole("ADMIN")

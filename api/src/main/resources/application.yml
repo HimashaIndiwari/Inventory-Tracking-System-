@@ -1,3 +1,7 @@
+server:
+  # Hosting providers (for example Render) inject PORT; 8080 remains the local default.
+  port: ${PORT:8080}
+
 spring:
   application:
     name: inventory-api

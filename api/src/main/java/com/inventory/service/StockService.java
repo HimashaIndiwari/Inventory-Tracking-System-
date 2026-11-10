@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.inventory.dto.PageResponse;
+import com.inventory.dto.StockAdjustmentRequest;
 import com.inventory.dto.StockMovementRequest;
 import com.inventory.dto.StockTransactionResponse;
 import com.inventory.dto.StockTransactionResponse.ProductRef;
@@ -47,7 +48,7 @@ public class StockService {
     public StockTransactionResponse stockIn(StockMovementRequest request, AuthenticatedUser actor) {
         Product product = lock(request.productId());
         product.changeQuantity(Math.addExact(product.getQuantity(), request.quantity()));
-        return record(product, actor, TransactionType.IN, request);
+        return record(product, actor, TransactionType.IN, request.quantity(), request.note());
     }
 
     @Transactional
@@ -57,7 +58,27 @@ public class StockService {
             throw new InsufficientStockException(request.quantity(), product.getQuantity());
         }
         product.changeQuantity(product.getQuantity() - request.quantity());
-        return record(product, actor, TransactionType.OUT, request);
+        return record(product, actor, TransactionType.OUT, request.quantity(), request.note());
+    }
+
+    /**
+     * ADJUST (ADMIN only, enforced in SecurityConfig): the delta is signed, so a positive value adds stock and a
+     * negative value removes it. The lock and the non-negative check happen before anything is written, so a
+     * rejected adjustment changes neither the quantity nor the ledger.
+     */
+    @Transactional
+    public StockTransactionResponse adjust(StockAdjustmentRequest request, AuthenticatedUser actor) {
+        if (request.delta() == 0) {
+            throw new RequestValidationException("delta", "must not be zero");
+        }
+        Product product = lock(request.productId());
+        long newQuantity = Math.addExact(product.getQuantity(), request.delta());
+        if (newQuantity < 0) {
+            throw new InsufficientStockException("Insufficient stock for adjustment: requested decrease "
+                    + -request.delta() + ", available " + product.getQuantity());
+        }
+        product.changeQuantity(newQuantity);
+        return record(product, actor, TransactionType.ADJUST, request.delta(), request.note());
     }
 
     /** from is inclusive, to is exclusive; both optional. */
@@ -80,10 +101,10 @@ public class StockService {
     }
 
     private StockTransactionResponse record(Product product, AuthenticatedUser actor, TransactionType type,
-            StockMovementRequest request) {
+            int quantity, String note) {
         AppUser user = users.getReferenceById(actor.userId());
         StockTransaction saved = transactions.saveAndFlush(new StockTransaction(product, user, type,
-                request.quantity(), product.getQuantity(), Text.trimToNull(request.note())));
+                quantity, product.getQuantity(), Text.trimToNull(note)));
         return toResponse(saved);
     }
 

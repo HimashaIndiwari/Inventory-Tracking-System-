@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.inventory.dto.PageResponse;
+import com.inventory.dto.StockAdjustmentRequest;
 import com.inventory.dto.StockMovementRequest;
 import com.inventory.dto.StockTransactionResponse;
 import com.inventory.entity.TransactionType;
@@ -24,7 +25,10 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 
-/** Stock movements are available to every authenticated user (USER and ADMIN). */
+/**
+ * IN and OUT are available to every authenticated user (USER and ADMIN). ADJUST is ADMIN only, enforced in
+ * SecurityConfig rather than here.
+ */
 @RestController
 @RequestMapping("/api/stock")
 public class StockController {
@@ -47,6 +51,13 @@ public class StockController {
     public StockTransactionResponse stockOut(@Valid @RequestBody StockMovementRequest request,
             @AuthenticationPrincipal AuthenticatedUser user) {
         return service.stockOut(request, user);
+    }
+
+    @PostMapping("/adjust")
+    @ResponseStatus(HttpStatus.CREATED)
+    public StockTransactionResponse adjust(@Valid @RequestBody StockAdjustmentRequest request,
+            @AuthenticationPrincipal AuthenticatedUser user) {
+        return service.adjust(request, user);
     }
 
     @GetMapping("/history")

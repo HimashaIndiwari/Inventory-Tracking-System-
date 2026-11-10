@@ -112,7 +112,7 @@ export default function ProductForm() {
         </Field>
         <p className="muted small">
           {editing
-            ? `Current quantity: ${formatQuantity(existing.data.quantity)}. Quantity changes only through Stock In / Out.`
+            ? `Current quantity: ${formatQuantity(existing.data.quantity)}. Quantity changes only through Stock In, Stock Out or Adjust.`
             : 'New products start with quantity 0. Use Stock In to add stock.'}
         </p>
         <div className="form-actions">

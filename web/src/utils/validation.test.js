@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { validateProduct, validateRegister, validateStock, validateSupplier } from './validation';
+import { validateAdjustment, validateProduct, validateRegister, validateStock, validateSupplier } from './validation';
 
 const product = { sku: 'elec-001', name: 'Mouse', description: '', categoryId: '1', supplierId: '', price: '24.99', reorderLevel: '5' };
 
@@ -53,6 +53,38 @@ describe('validateStock', () => {
 
   it('limits notes to 255 characters', () => {
     expect(validateStock({ productId: '1', quantity: '1', note: 'n'.repeat(256) }).note).toBeDefined();
+  });
+});
+
+describe('validateAdjustment', () => {
+  const ok = { productId: '1', quantity: '5', note: 'Found in count' };
+
+  it('accepts a positive or negative whole change with a reason', () => {
+    expect(validateAdjustment(ok)).toEqual({});
+    expect(validateAdjustment({ ...ok, quantity: '-3' })).toEqual({});
+    expect(validateAdjustment({ ...ok, quantity: '+2' })).toEqual({});
+  });
+
+  it('rejects a zero change with a clear message', () => {
+    expect(validateAdjustment({ ...ok, quantity: '0' }).quantity).toBe('Change cannot be zero.');
+  });
+
+  it('rejects changes beyond ±1,000,000 and non-whole values', () => {
+    expect(validateAdjustment({ ...ok, quantity: '1000001' }).quantity).toBeDefined();
+    expect(validateAdjustment({ ...ok, quantity: '-1000001' }).quantity).toBeDefined();
+    expect(validateAdjustment({ ...ok, quantity: '1.5' }).quantity).toBeDefined();
+    expect(validateAdjustment({ ...ok, quantity: 'abc' }).quantity).toBeDefined();
+    expect(validateAdjustment({ ...ok, quantity: '' }).quantity).toBeDefined();
+  });
+
+  it('requires a non-blank reason of at most 255 characters', () => {
+    expect(validateAdjustment({ ...ok, note: '' }).note).toBe('A reason is required.');
+    expect(validateAdjustment({ ...ok, note: '   ' }).note).toBe('A reason is required.');
+    expect(validateAdjustment({ ...ok, note: 'n'.repeat(256) }).note).toBeDefined();
+  });
+
+  it('requires a product', () => {
+    expect(validateAdjustment({ ...ok, productId: '' }).productId).toBeDefined();
   });
 });
 

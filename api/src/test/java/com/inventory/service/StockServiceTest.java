@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import com.inventory.dto.StockAdjustmentRequest;
 import com.inventory.dto.StockMovementRequest;
 import com.inventory.dto.StockTransactionResponse;
 import com.inventory.entity.AppUser;
@@ -120,5 +121,60 @@ class StockServiceTest {
 
         assertThat(e.getMessage()).contains("must not be after 'to'");
         verifyNoInteractions(transactions);
+    }
+
+    @Test
+    void adjustPositiveIncreasesAndRecordsSignedDeltaAndTrimmedNote() {
+        StockTransactionResponse response = service.adjust(
+                new StockAdjustmentRequest(9L, 4, "  Stocktake found  "), ACTOR);
+
+        assertThat(product.getQuantity()).isEqualTo(9);
+        assertThat(response.type()).isEqualTo(TransactionType.ADJUST);
+        assertThat(response.quantity()).isEqualTo(4);
+        assertThat(response.quantityAfter()).isEqualTo(9);
+        assertThat(response.note()).isEqualTo("Stocktake found");
+    }
+
+    @Test
+    void adjustNegativeDecreasesAndRecordsNegativeDelta() {
+        StockTransactionResponse response = service.adjust(new StockAdjustmentRequest(9L, -3, "Damaged"), ACTOR);
+
+        assertThat(product.getQuantity()).isEqualTo(2);
+        assertThat(response.quantity()).isEqualTo(-3);
+        assertThat(response.quantityAfter()).isEqualTo(2);
+    }
+
+    @Test
+    void adjustDownToZeroIsAllowed() {
+        service.adjust(new StockAdjustmentRequest(9L, -5, "Written off"), ACTOR);
+
+        assertThat(product.getQuantity()).isZero();
+    }
+
+    @Test
+    void adjustBelowZeroIs409AndLeavesStockUnchanged() {
+        InsufficientStockException e = assertThrows(InsufficientStockException.class,
+                () -> service.adjust(new StockAdjustmentRequest(9L, -6, "Count error"), ACTOR));
+
+        assertThat(e.getMessage()).isEqualTo("Insufficient stock for adjustment: requested decrease 6, available 5");
+        assertThat(product.getQuantity()).isEqualTo(5);
+        verify(transactions, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void adjustZeroIsValidationErrorOnDelta() {
+        RequestValidationException e = assertThrows(RequestValidationException.class,
+                () -> service.adjust(new StockAdjustmentRequest(9L, 0, "No change"), ACTOR));
+
+        assertThat(e.getMessage()).contains("must not be zero");
+        assertThat(product.getQuantity()).isEqualTo(5);
+        verify(transactions, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void adjustArchivedOrMissingProductIs404() {
+        when(products.findActiveByIdForUpdate(9L)).thenReturn(Optional.empty());
+
+        assertThrows(NotFoundException.class, () -> service.adjust(new StockAdjustmentRequest(9L, 1, "Found"), ACTOR));
     }
 }
