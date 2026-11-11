@@ -21,7 +21,7 @@ Placeholders are in `.env.example`. Never commit real values.
 | `DB_USERNAME`, `DB_PASSWORD` | MySQL account for `inventory_db` |
 | `GOOGLE_APPLICATION_CREDENTIALS` | Absolute path to the Firebase service-account JSON |
 | `APP_SECURITY_ADMIN_EMAILS` | Comma-separated admin emails; a user is ADMIN only if the email is listed **and** verified in Firebase |
-| `APP_CORS_ALLOWED_ORIGIN` | Frontend origin (default `http://localhost:5173`) |
+| `APP_CORS_ALLOWED_ORIGIN` | Comma-separated frontend origins (default `http://localhost:5173`) |
 
 Tests read the test database from `api/test-db.properties` (git-ignored) or from environment variables
 with the same names:
